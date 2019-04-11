@@ -29,7 +29,7 @@ export default new Router({
     },
     {
       path: '/study/:type/:id/:box',
-      name: 'ChooseBox',
+      name: 'Study',
       component: () => import(/* webpackChunkName: "about" */ './views/study/Study.vue'),
     },
 

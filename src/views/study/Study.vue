@@ -101,9 +101,9 @@
                     color="warning"
                     large
                     outline
+                    @click="refill()"
                   >리필하기</v-btn>
                 </v-layout>
-
               </v-layout>
 
             </v-responsive>
@@ -119,6 +119,11 @@
 
 <script>
 export default {
+  methods: {
+    refill () {
+      this.$store.dispatch('REFILL')
+    },
+  },
 }
 </script>
 
