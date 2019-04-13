@@ -1,5 +1,5 @@
 export const state = {
-  box: 3,
+  box: 1,
   bucketSize: 7,
   now: {},
   list: [
@@ -111,6 +111,8 @@ export const state = {
   ],
   bucket: [],
   fails: [],
+  failCount: 0,
+  passCount: 0,
 }
 
 export const getters = {
@@ -122,12 +124,33 @@ export const actions = {
     // 박스로 부터 랜덤 카드 Pick
     // Bucket에 Push
     // 7번 반복
+    commit('SET_BUCKET', [])
+    const { box } = state
+    const cardLength = getters.cardsInBox(box).length
 
+    if (cardLength > 7) {
+      const idSet = new Set()
+      while (idSet.size < state.bucketSize) {
+        const randomPickedCard = await dispatch('PICK_RANDOM_CARD_FROM_BOX')
+        idSet.add(randomPickedCard.id)
+      }
+      const values = Array.from(idSet.values())
+      const cards = getters.cardsInBox(box).filter(el => values.some(id => id == el.id))
+      for (const card of cards) {
+        commit('PUSH_CARD_TO_BUCKET', card)
+      }
+    } else if (cardLength > 0) {
+      for (const card of getters.cardsInBox(box)) {
+        commit('PUSH_CARD_TO_BUCKET', card)
+      }
+    } else {
+      alert('리필할 카드가 없어요! :)')
+    }
     // 7~
     // 1-6
     // 0개
   },
-  STUDY_CARD ({ commit }, { study, card }) {
+  STUDY_CARD ({ commit, dispatch }, { study, card }) {
     // Bucket에서 index의 card 처리
     // * 레이트너 기준
     // 1. 알아요
@@ -149,32 +172,36 @@ export const actions = {
     return cards[randomPosition]
   },
   PROCESS_WITH_LEITNER ({ state, commit }, { result, card }) {
-    // result = true / false
     if (result) {
       // 알아요
-      // 카드 제거
-      const position = state.bucket.findIndex(el => el.id === card.id)
-      commit('REMOVE_CARD_FROM_BUCKET', position)
-      // 다음 박스로 보냄
       if (card.box < 5) {
+        // 다음 박스로 보냄
         card.box++
       }
-      // 한 번 틀렸던 카드이면?
-      // 1로 보내고 틀렸던 카드 등록 삭제
+
+      commit('SET_PASS_COUNT', state.passCount + 1)
+
       if (state.fails.find(el => el.id === card.id)) {
+        // 한 번 틀렸던 카드이면?
+        // 1로 보내고 틀렸던 카드 등록 삭제
         card.box = 1
         const index = state.fails.findIndex(el => el.id === card.id)
         commit('REMOVE_CARD_FROM_FAILS', index)
+        commit('SET_PASS_COUNT', state.passCount - 1)
       }
+
       card.lastStudiedAt = new Date()
-      commit('REPLACE_CARD_WITH_INDEX_FROM_LIST', { item: card, index })
+      const indexInList = state.list.findIndex(el => el.id === card.id)
+      commit('REPLACE_CARD_WITH_INDEX_FROM_LIST', { item: card, index: indexInList })
     } else {
       // Fails로 보냄 등록이 안됐을 경우
       const index = state.fails.findIndex(el => el.id === card.id)
-      if (index >= 0) {
+      if (index < 0) {
         commit('PUSH_CARD_TO_FAILS', card)
+        commit('SET_FAIL_COUNT', state.failCount + 1)
       }
     }
+    // 서버로 카드정보 전송
   },
 
 }
@@ -191,6 +218,12 @@ export const mutations = {
   },
   SET_FAILS (state, data) {
     state.fails = data
+  },
+  SET_PASS_COUNT (state, data) {
+    state.passCount = data
+  },
+  SET_FAIL_COUNT (state, data) {
+    state.failCount = data
   },
 
   PUSH_CARD_TO_BUCKET (state, card) {

@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
+import store from './store'
+
 Vue.use(Router)
 
 export default new Router({
@@ -21,6 +23,10 @@ export default new Router({
       path: '/study/:type',
       name: 'ChooseCategory',
       component: () => import(/* webpackChunkName: "about" */ './views/study/ChooseCategory.vue'),
+      beforeEnter (to, from, next) {
+        store.dispatch('FETCH_CATEGORIES')
+        next()
+      }
     },
     {
       path: '/study/:type/:id',
